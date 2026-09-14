@@ -1,0 +1,7 @@
+# API dependencies (placeholder)
+# fastapi
+# uvicorn[standard]
+# pydantic
+# supabase
+# python-dotenv
+# sentry-sdk
