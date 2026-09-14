@@ -1,0 +1,5 @@
+# Scoring engine dependencies (placeholder)
+# pandas
+# numpy
+# h3-py
+# python-dotenv
