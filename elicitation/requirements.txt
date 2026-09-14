@@ -1,0 +1,3 @@
+# Elicitation (AHP / swing weighting) dependencies (placeholder)
+# numpy
+# pandas
