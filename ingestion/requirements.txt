@@ -1,0 +1,8 @@
+# Ingestion / ETL dependencies (placeholder — pin versions before first real run)
+# h3-py            # H3 hex grid indexing (ADR-001)
+# geopandas
+# pandas
+# shapely
+# requests         # for ORS API calls (ADR-002)
+# python-dotenv
+# osmnx
