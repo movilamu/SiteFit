@@ -1,0 +1,44 @@
+.sites-map {
+  width: 100%;
+  height: 100%;
+}
+
+.sites-map .maplibregl-ctrl-attrib {
+  background: rgba(17, 21, 29, 0.82);
+  color: rgb(148 163 184);
+  font-size: 10px;
+}
+
+.sites-map .maplibregl-ctrl-attrib a {
+  color: rgb(165 243 252);
+}
+
+.sites-map .maplibregl-ctrl-group {
+  background: #11151d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sites-map .maplibregl-ctrl-group button {
+  background: #11151d;
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.site-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid #ecfeff;
+  background: #22d3ee;
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.22);
+  cursor: pointer;
+  padding: 0;
+  transform-origin: center;
+}
+
+.site-marker.is-selected {
+  width: 20px;
+  height: 20px;
+  background: #fbbf24;
+  border-color: #fff;
+  box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.28);
+}

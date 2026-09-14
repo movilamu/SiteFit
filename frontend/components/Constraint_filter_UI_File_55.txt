@@ -1,0 +1,269 @@
+import React, { useState, useMemo } from 'react';
+import { Filter, X, ChevronDown, ChevronUp, AlertCircle, Building2 } from 'lucide-react';
+
+interface ExcludedSite {
+  site_identifier: string | number;
+  reasons: string[];
+}
+
+interface Site {
+  site_id: string | number;
+  name?: string;
+  unit_size?: number;
+  rent?: number;
+  tenure?: string;
+  status?: string;
+  attractiveness?: number;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+interface SitesApiResponse {
+  count: number;
+  filters_applied: Record<string, any>;
+  sites: Site[];
+  excluded: ExcludedSite[];
+}
+
+interface ConstraintFilterPanelProps {
+  availableTenureTypes?: string[];
+  onFilterChange?: (filteredData: SitesApiResponse) => void;
+  apiEndpoint?: string;
+}
+
+export const ConstraintFilterPanel: React.FC<ConstraintFilterPanelProps> = ({
+  availableTenureTypes = ['lease', 'freehold', 'licence'],
+  onFilterChange,
+  apiEndpoint = '/sites',
+}) => {
+  // Input States
+  const [minUnitSize, setMinUnitSize] = useState<string>('');
+  const [maxRent, setMaxRent] = useState<string>('');
+  const [selectedTenures, setSelectedTenures] = useState<string[]>([]);
+
+  // Response / UI States
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [excludedSites, setExcludedSites] = useState<ExcludedSite[]>([]);
+  const [showExclusionDetails, setShowExclusionDetails] = useState<boolean>(false);
+
+  // Toggle tenure checkbox state
+  const handleTenureToggle = (tenure: string) => {
+    setSelectedTenures((prev) =>
+      prev.includes(tenure) ? prev.filter((t) => t !== tenure) : [...prev, tenure]
+    );
+  };
+
+  // Build GET query string matching File 43 specs
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    if (minUnitSize.trim()) params.append('min_unit_size', minUnitSize.trim());
+    if (maxRent.trim()) params.append('max_rent', maxRent.trim());
+    if (selectedTenures.length > 0) {
+      // Formats as comma-separated string (File 43 accepts lease,freehold)
+      params.append('required_tenure', selectedTenures.join(','));
+    }
+    return params.toString();
+  }, [minUnitSize, maxRent, selectedTenures]);
+
+  // Execute Filter GET /sites request
+  const handleApplyFilters = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const url = queryParams ? `${apiEndpoint}?${queryParams}` : apiEndpoint;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Server returned HTTP ${response.status}`);
+      }
+
+      const data: SitesApiResponse = await response.json();
+      
+      setExcludedSites(data.excluded || []);
+      if (onFilterChange) {
+        onFilterChange(data);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch candidate sites.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Reset filter controls
+  const handleReset = () => {
+    setMinUnitSize('');
+    setMaxRent('');
+    setSelectedTenures([]);
+    setError(null);
+  };
+
+  // Compute total reasons summary for File 26 output
+  const totalExclusionReasonsCount = useMemo(() => {
+    return excludedSites.reduce((acc, curr) => acc + curr.reasons.length, 0);
+  }, [excludedSites]);
+
+  return (
+    <div className="w-full max-w-md bg-white border border-slate-200 rounded-lg shadow-sm font-sans text-slate-800">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-lg">
+        <div className="flex items-center space-x-2">
+          <Filter className="w-4 h-4 text-indigo-600" />
+          <h3 className="font-semibold text-slate-900 text-sm">Site Constraints</h3>
+        </div>
+        <button
+          type="button"
+          onClick={handleReset}
+          className="text-xs text-slate-500 hover:text-slate-800 transition-colors"
+        >
+          Reset
+        </button>
+      </div>
+
+      {/* Filter Form */}
+      <form onSubmit={handleApplyFilters} className="p-4 space-y-4">
+        {/* Min Unit Size */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            Minimum Unit Size (sq ft)
+          </label>
+          <input
+            type="number"
+            min="0"
+            placeholder="e.g. 1500"
+            value={minUnitSize}
+            onChange={(e) => setMinUnitSize(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Max Rent */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            Maximum Rent Cap (£/yr)
+          </label>
+          <input
+            type="number"
+            min="0"
+            placeholder="e.g. 250000"
+            value={maxRent}
+            onChange={(e) => setMaxRent(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Tenure Multi-Select */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1.5">
+            Tenure Types
+          </label>
+          <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-md border border-slate-100">
+            {availableTenureTypes.map((tenure) => {
+              const isChecked = selectedTenures.includes(tenure);
+              return (
+                <label
+                  key={tenure}
+                  className="flex items-center space-x-2 text-xs text-slate-600 cursor-pointer select-none capitalize"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => handleTenureToggle(tenure)}
+                    className="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                  />
+                  <span>{tenure}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Validation Error Message */}
+        {error && (
+          <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-md text-xs text-rose-700 flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded-md shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center space-x-1.5"
+        >
+          {isLoading ? (
+            <span>Applying Filters...</span>
+          ) : (
+            <span>Apply Constraints</span>
+          )}
+        </button>
+      </form>
+
+      {/* Exclusion Summary Panel (File 26 Integration) */}
+      <div className="border-t border-slate-100 bg-slate-50/50 p-4 rounded-b-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold bg-rose-100 text-rose-800 rounded-full">
+              {excludedSites.length}
+            </span>
+            <span className="text-xs font-medium text-slate-700">
+              Sites Excluded
+            </span>
+          </div>
+
+          {excludedSites.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowExclusionDetails(!showExclusionDetails)}
+              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center space-x-1 font-medium"
+            >
+              <span>{showExclusionDetails ? 'Hide' : 'Show Reasons'}</span>
+              {showExclusionDetails ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Detailed File 26 Reasons Breakdown */}
+        {showExclusionDetails && excludedSites.length > 0 && (
+          <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
+            <div className="text-[11px] text-slate-500">
+              {totalExclusionReasonsCount} restriction violations logged:
+            </div>
+            {excludedSites.map((site) => (
+              <div
+                key={site.site_identifier}
+                className="bg-white p-2 border border-slate-200 rounded text-xs space-y-1 shadow-2xs"
+              >
+                <div className="font-semibold text-slate-800 flex items-center space-x-1">
+                  <Building2 className="w-3 h-3 text-slate-400" />
+                  <span>Site ID: {site.site_identifier}</span>
+                </div>
+                <ul className="list-disc pl-4 space-y-0.5 text-rose-600 text-[11px]">
+                  {site.reasons.map((reason, idx) => (
+                    <li key={idx}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
