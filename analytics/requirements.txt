@@ -1,0 +1,4 @@
+# Analytics / backtesting dependencies (placeholder)
+# pandas
+# numpy
+# matplotlib
