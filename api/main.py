@@ -82,7 +82,7 @@ _DEV_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-_PRODUCTION_ORIGIN = "https://YOUR-VERCEL-APP.vercel.app"  # fill in at deployment
+_PRODUCTION_ORIGIN = os.getenv("FRONTEND_ORIGIN", "https://YOUR-VERCEL-APP.vercel.app")
 
 app.add_middleware(
     CORSMiddleware,

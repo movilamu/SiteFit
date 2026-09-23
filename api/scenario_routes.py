@@ -159,9 +159,14 @@ def get_normalized_matrix() -> pd.DataFrame:
     else:
         configured_path = os.getenv("NORMALIZED_MATRIX_FILE")
         if not configured_path:
-            raise RuntimeError(
-                "No normalized matrix is configured. Set NORMALIZED_MATRIX_FILE "
-                "or provide File 31's matrix through get_normalized_matrix()."
+            from fastapi import HTTPException, status as _status
+
+            raise HTTPException(
+                status_code=_status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "No normalized matrix is configured. Set NORMALIZED_MATRIX_FILE "
+                    "or provide File 31's matrix through get_normalized_matrix()."
+                ),
             )
 
         path = Path(configured_path)
