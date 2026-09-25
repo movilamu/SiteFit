@@ -4,6 +4,7 @@ const API_BASE = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_UR
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {},
   typescript: {
     ignoreBuildErrors: true,
   },
